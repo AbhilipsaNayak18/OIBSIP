@@ -1,264 +1,201 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-import sqlite3
-import csv
-from datetime import datetime
-import matplotlib.pyplot as plt
+from tkinter import messagebox, filedialog
+import string
+import secrets
+import pyperclip
 
-# ---------------- DATABASE ----------------
-conn = sqlite3.connect("bmi_data.db")
-cursor = conn.cursor()
+# ---------------- WINDOW ----------------
+root = tk.Tk()
+root.title("🔥 Advanced Password Generator")
+root.geometry("520x650")
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS bmi (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    weight REAL,
-    height REAL,
-    bmi REAL,
-    category TEXT,
-    date TEXT
-)
-""")
-conn.commit()
+dark_mode = True
 
-last_bmi = None
-dark_mode = False
-
-# ---------------- FUNCTIONS ----------------
-def calculate_bmi():
-    global last_bmi
-
-    try:
-        w = float(weight_entry.get())
-        h = float(height_entry.get()) / 100
-
-        if w <= 0 or h <= 0:
-            raise ValueError
-
-        bmi = round(w / (h*h), 2)
-
-        if bmi < 18.5:
-            cat = "Underweight"
-            color = "#3498db"
-        elif bmi < 25:
-            cat = "Normal"
-            color = "#2ecc71"
-        elif bmi < 30:
-            cat = "Overweight"
-            color = "#f39c12"
-        else:
-            cat = "Obese"
-            color = "#e74c3c"
-
-        result_var.set(f"BMI: {bmi}")
-        category_var.set(cat)
-        result_label.config(fg=color)
-
-        # Improvement logic
-        improvement = ""
-        if last_bmi is not None:
-            if bmi < last_bmi:
-                improvement = "⬇ Improved!"
-            elif bmi > last_bmi:
-                improvement = "⬆ Increased"
-            else:
-                improvement = "No change"
-
-        improvement_var.set(improvement)
-        last_bmi = bmi
-
-    except:
-        messagebox.showerror("Error", "Enter valid input!")
-
-def save_data():
-    if result_var.get() == "":
-        messagebox.showwarning("Warning", "Calculate BMI first!")
-        return
-
-    name = name_entry.get()
-    w = weight_entry.get()
-    h = height_entry.get()
-    bmi = result_var.get().replace("BMI: ","")
-    cat = category_var.get()
-    date = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    cursor.execute("INSERT INTO bmi VALUES(NULL,?,?,?,?,?,?)",
-                   (name, w, h, bmi, cat, date))
-    conn.commit()
-    load_data()
-
-def load_data():
-    for row in tree.get_children():
-        tree.delete(row)
-
-    cursor.execute("SELECT * FROM bmi")
-    for row in cursor.fetchall():
-        tree.insert("", "end", values=row)
-
-def search():
-    key = search_entry.get()
-
-    for row in tree.get_children():
-        tree.delete(row)
-
-    cursor.execute("SELECT * FROM bmi WHERE name LIKE ?", ('%'+key+'%',))
-    for row in cursor.fetchall():
-        tree.insert("", "end", values=row)
-
-def export_csv():
-    file = filedialog.asksaveasfilename(defaultextension=".csv")
-    if file:
-        cursor.execute("SELECT * FROM bmi")
-        data = cursor.fetchall()
-
-        with open(file, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["ID","Name","Weight","Height","BMI","Category","Date"])
-            writer.writerows(data)
-
-        messagebox.showinfo("Done", "Exported!")
-
-def show_graph():
-    cursor.execute("SELECT date, bmi FROM bmi")
-    data = cursor.fetchall()
-
-    if not data:
-        messagebox.showwarning("No Data", "No records found!")
-        return
-
-    dates = [d[0] for d in data]
-    bmis = [float(d[1]) for d in data]
-
-    plt.figure()
-    plt.plot(dates, bmis, marker='o')
-    plt.xticks(rotation=40)
-    plt.title("BMI Trend Graph")
-    plt.tight_layout()
-    plt.show()
-
-def clear():
-    name_entry.delete(0, tk.END)
-    weight_entry.delete(0, tk.END)
-    height_entry.delete(0, tk.END)
-    result_var.set("")
-    category_var.set("")
-    improvement_var.set("")
-
-def toggle_dark():
-    global dark_mode
-    dark_mode = not dark_mode
-
-    bg = "#121212" if dark_mode else "#f4f6f7"
+# ---------------- COLORS ----------------
+def apply_theme():
+    bg = "#1e1e2f" if dark_mode else "#f5f5f5"
     fg = "white" if dark_mode else "black"
-    card = "#1e1e1e" if dark_mode else "white"
 
-    root.configure(bg=bg)
-    main.configure(bg=bg)
-    left.configure(bg=card)
-    right.configure(bg=card)
-
-    for widget in left.winfo_children():
+    root.config(bg=bg)
+    for widget in root.winfo_children():
         try:
-            widget.configure(bg=card, fg=fg)
+            widget.config(bg=bg, fg=fg)
         except:
             pass
 
+# ---------------- VARIABLES ----------------
+length_var = tk.IntVar(value=12)
+upper_var = tk.BooleanVar(value=True)
+lower_var = tk.BooleanVar(value=True)
+digit_var = tk.BooleanVar(value=True)
+symbol_var = tk.BooleanVar(value=False)
+exclude_var = tk.BooleanVar(value=False)
+show_password = tk.BooleanVar(value=False)
+
+password_history = []
+
+# ---------------- FUNCTIONS ----------------
+def generate_password():
+    length = length_var.get()
+
+    if length < 8:
+        messagebox.showerror("Error", "Minimum length is 8")
+        return
+
+    char_sets = []
+    password_chars = []
+
+    if upper_var.get():
+        chars = string.ascii_uppercase
+        char_sets.append(chars)
+        password_chars.append(secrets.choice(chars))
+
+    if lower_var.get():
+        chars = string.ascii_lowercase
+        char_sets.append(chars)
+        password_chars.append(secrets.choice(chars))
+
+    if digit_var.get():
+        chars = string.digits
+        char_sets.append(chars)
+        password_chars.append(secrets.choice(chars))
+
+    if symbol_var.get():
+        chars = string.punctuation
+        char_sets.append(chars)
+        password_chars.append(secrets.choice(chars))
+
+    if not char_sets:
+        messagebox.showerror("Error", "Select at least one character type")
+        return
+
+    all_chars = ''.join(char_sets)
+
+    if exclude_var.get():
+        for ch in "0O1l":
+            all_chars = all_chars.replace(ch, '')
+
+    while len(password_chars) < length:
+        password_chars.append(secrets.choice(all_chars))
+
+    secrets.SystemRandom().shuffle(password_chars)
+    password = ''.join(password_chars)
+
+    password_entry.delete(0, tk.END)
+    password_entry.insert(0, password)
+
+    update_strength(password)
+    save_history(password)
+
+    pyperclip.copy(password)
+
+def update_strength(password):
+    score = 0
+
+    if len(password) >= 8:
+        score += 1
+    if len(password) >= 12:
+        score += 1
+    if any(c.isupper() for c in password):
+        score += 1
+    if any(c.islower() for c in password):
+        score += 1
+    if any(c.isdigit() for c in password):
+        score += 1
+    if any(c in string.punctuation for c in password):
+        score += 1
+
+    if score <= 2:
+        strength_label.config(text="Weak", fg="red")
+    elif score <= 4:
+        strength_label.config(text="Medium", fg="orange")
+    else:
+        strength_label.config(text="Strong", fg="green")
+
+def copy_password():
+    pwd = password_entry.get()
+    if pwd:
+        pyperclip.copy(pwd)
+        messagebox.showinfo("Copied", "Password copied!")
+
+def save_history(password):
+    global password_history
+    password_history.insert(0, password)
+
+    if len(password_history) > 5:
+        password_history = password_history[:5]
+
+    history_box.delete(0, tk.END)
+    for p in password_history:
+        history_box.insert(tk.END, p)
+
+def toggle_visibility():
+    if show_password.get():
+        password_entry.config(show="")
+    else:
+        password_entry.config(show="*")
+
+def toggle_theme():
+    global dark_mode
+    dark_mode = not dark_mode
+    apply_theme()
+
+def save_to_file():
+    passwords = history_box.get(0, tk.END)
+    if not passwords:
+        messagebox.showwarning("No Data", "No passwords to save")
+        return
+
+    file = filedialog.asksaveasfilename(defaultextension=".txt",
+                                        filetypes=[("Text Files", "*.txt")])
+    if file:
+        with open(file, "w") as f:
+            for p in passwords:
+                f.write(p + "\n")
+        messagebox.showinfo("Saved", "Passwords saved successfully!")
+
 # ---------------- UI ----------------
-root = tk.Tk()
-root.title("BMI Health Tracker")
-root.geometry("1100x600")
-root.configure(bg="#f4f6f7")
+title = tk.Label(root, text="🔐 Password Generator", font=("Arial", 18, "bold"))
+title.pack(pady=10)
 
-tk.Label(root, text="BMI Health Tracker",
-         font=("Segoe UI", 24, "bold"),
-         bg="#f4f6f7").pack(pady=5)
+password_entry = tk.Entry(root, font=("Arial", 14), width=30, show="*")
+password_entry.pack(pady=10)
 
-tk.Label(root, text="Track your BMI, monitor progress, and improve your health",
-         font=("Segoe UI", 11),
-         fg="gray",
-         bg="#f4f6f7").pack()
+tk.Checkbutton(root, text="Show Password", variable=show_password,
+               command=toggle_visibility).pack()
 
-main = tk.Frame(root, bg="#f4f6f7")
-main.pack(fill="both", expand=True, padx=10, pady=10)
+tk.Button(root, text="Generate Password", command=generate_password,
+          bg="#4CAF50", fg="white").pack(pady=10)
 
-# LEFT PANEL
-left = tk.Frame(main, bg="white", bd=2, relief="groove")
-left.pack(side="left", fill="y", padx=10)
+tk.Button(root, text="Copy", command=copy_password,
+          bg="#2196F3", fg="white").pack(pady=5)
 
-tk.Label(left, text="Enter Details",
-         font=("Segoe UI", 14, "bold"),
-         bg="white").pack(pady=10)
+tk.Button(root, text="💾 Save to File", command=save_to_file,
+          bg="#9C27B0", fg="white").pack(pady=5)
 
-def input_field(label):
-    tk.Label(left, text=label, bg="white").pack()
-    e = tk.Entry(left)
-    e.pack(pady=5)
-    return e
+tk.Button(root, text="🌙 Toggle Theme", command=toggle_theme).pack(pady=5)
 
-name_entry = input_field("Name")
-weight_entry = input_field("Weight (kg)")
-height_entry = input_field("Height (cm)")
+# Length
+tk.Label(root, text="Length").pack()
+tk.Scale(root, from_=8, to=32, orient="horizontal",
+         variable=length_var).pack()
 
-tk.Button(left, text="Calculate BMI",
-          bg="#3498db", fg="white",
-          command=calculate_bmi).pack(pady=5)
+# Options
+tk.Checkbutton(root, text="Uppercase", variable=upper_var).pack(anchor='w', padx=120)
+tk.Checkbutton(root, text="Lowercase", variable=lower_var).pack(anchor='w', padx=120)
+tk.Checkbutton(root, text="Numbers", variable=digit_var).pack(anchor='w', padx=120)
+tk.Checkbutton(root, text="Symbols", variable=symbol_var).pack(anchor='w', padx=120)
+tk.Checkbutton(root, text="Exclude 0,O,l,1", variable=exclude_var).pack(anchor='w', padx=120)
 
-tk.Button(left, text="Save Result",
-          bg="#2ecc71", fg="white",
-          command=save_data).pack(pady=5)
+# Strength
+tk.Label(root, text="Strength").pack(pady=5)
+strength_label = tk.Label(root, text="--", font=("Arial", 12, "bold"))
+strength_label.pack()
 
-tk.Button(left, text="Clear", command=clear).pack(pady=5)
+# History
+tk.Label(root, text="Last 5 Passwords").pack()
+history_box = tk.Listbox(root, height=5)
+history_box.pack(pady=10)
 
-tk.Button(left, text="🌙 Toggle Dark Mode",
-          command=toggle_dark).pack(pady=5)
-
-tk.Label(left, text="Result",
-         font=("Segoe UI", 12, "bold"),
-         bg="white").pack(pady=10)
-
-result_var = tk.StringVar()
-category_var = tk.StringVar()
-improvement_var = tk.StringVar()
-
-result_label = tk.Label(left, textvariable=result_var,
-                        font=("Segoe UI", 16, "bold"),
-                        bg="white")
-result_label.pack()
-
-tk.Label(left, textvariable=category_var,
-         font=("Segoe UI", 12),
-         bg="white").pack()
-
-tk.Label(left, textvariable=improvement_var,
-         font=("Segoe UI", 10, "italic"),
-         fg="gray",
-         bg="white").pack()
-
-# RIGHT PANEL
-right = tk.Frame(main, bg="white", bd=2, relief="groove")
-right.pack(side="right", fill="both", expand=True)
-
-top = tk.Frame(right, bg="white")
-top.pack(fill="x", pady=5)
-
-tk.Button(top, text="View History", command=load_data).pack(side="left", padx=5)
-tk.Button(top, text="Graph", command=show_graph).pack(side="left", padx=5)
-tk.Button(top, text="Export CSV", command=export_csv).pack(side="left", padx=5)
-
-search_entry = tk.Entry(top)
-search_entry.pack(side="left", padx=10)
-
-tk.Button(top, text="Search", command=search).pack(side="left")
-
-cols = ("ID","Name","Weight","Height","BMI","Category","Date")
-tree = ttk.Treeview(right, columns=cols, show="headings")
-
-for col in cols:
-    tree.heading(col, text=col)
-    tree.column(col, anchor="center")
-
-tree.pack(fill="both", expand=True)
-
-load_data()
+apply_theme()
 root.mainloop()
