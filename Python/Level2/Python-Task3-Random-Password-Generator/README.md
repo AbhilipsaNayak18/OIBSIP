@@ -21,6 +21,4 @@ This application creates strong, secure passwords with multiple customization op
 - Tkinter (GUI)  
 - Pyperclip  
 
----
-
-## 📂 Project Structure
+--
