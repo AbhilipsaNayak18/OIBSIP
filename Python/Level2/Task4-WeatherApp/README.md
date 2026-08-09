@@ -1,7 +1,7 @@
 # 🌦 Weather App
 
 ## 📌 Internship Details
-- 👨‍💻 Name: YOUR NAME
+- 👨‍💻 Name: Abhilipsa Nayak
 - 🏢 Internship: Oasis Infobyte (OIBSIP)
 - 💻 Track: Python Development
 - 📍 Task: Task 4 - Weather Application
