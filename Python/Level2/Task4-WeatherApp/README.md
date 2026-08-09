@@ -1,41 +1,27 @@
 # 🌦 Weather App
 
-## 📌 Internship Details
-- 👨‍💻 Name: Abhilipsa Nayak
-- 🏢 Internship: Oasis Infobyte (OIBSIP)
-- 💻 Track: Python Development
-- 📍 Task: Task 4 - Weather Application
+## 📌 Internship Task
+- Name: Abhilipsa Nayak
+- Track: Python Development
+- Task: Task 4 - Weather App
 
----
-
-## 🚀 Project Description
-This is a professional Weather Application built using Python.  
-It provides real-time weather information using the OpenWeather API with a clean and interactive user interface.
-
----
-
-## ✨ Features
-✔ Search weather by city  
-✔ Auto-detect current location  
-✔ Displays temperature, weather condition  
-✔ Shows humidity, pressure, wind speed  
-✔ Sunrise & Sunset time  
-✔ Hourly forecast  
-✔ 5-day forecast  
-✔ Dark / Light mode toggle  
-✔ Export weather report  
-✔ Stores recent searches  
-
----
+## 🚀 Features
+- City-based weather search
+- Auto location detection
+- Temperature, humidity, wind
+- Sunrise & Sunset
+- Hourly + 5-day forecast
+- Dark/Light mode
+- Export weather report
+- Search history
 
 ## 🛠 Tech Stack
-- Python  
-- Tkinter (GUI)  
-- OpenWeather API  
-- SQLite (Database)  
-- Requests  
-- Pillow  
+- Python
+- Tkinter
+- OpenWeather API
+- SQLite
 
----
-
-## 📂 Project Structure
+## ▶️ How to Run
+```bash
+pip install -r requirements.txt
+python main.py
